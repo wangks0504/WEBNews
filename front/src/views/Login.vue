@@ -1,134 +1,147 @@
 <template>
-  <!-- 欧阳负责：F6 用户登录页面 yyyyyyyyy-->
-  <div class="login-container">
-    <el-card class="login-card">
-      <template #header>
-        <div class="card-header">
-          <h2>用户登录</h2>
-        </div>
-      </template>
-      
-      <el-form
-        ref="loginFormRef"
-        :model="loginForm"
-        :rules="loginRules"
-        label-width="80px">
-        <el-form-item label="用户名" prop="userName">
-          <el-input
-            v-model="loginForm.userName"
-            placeholder="请输入用户名"
-            clearable />
-        </el-form-item>
-        
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="loginForm.password"
-            type="password"
-            placeholder="请输入密码"
-            show-password
-            clearable />
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button
-            type="primary"
-            style="width: 100%"
-            :loading="loading"
-            @click="handleLogin">
-            登录
-          </el-button>
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button
-            type="text"
-            style="width: 100%"
-            @click="goToRegister">
-            还没有账号？去注册
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+  <div class="login-box">
+    <h2>用户登录</h2>
+    <form @submit.prevent="handleLogin">
+      <div class="form-item">
+        <label>用户名：</label>
+        <input 
+          type="text" 
+          v-model="form.userName" 
+          placeholder="请输入用户名" 
+          required
+        >
+      </div>
+      <div class="form-item">
+        <label>密码：</label>
+        <input 
+          type="password" 
+          v-model="form.password" 
+          placeholder="请输入密码" 
+          required
+        >
+      </div>
+      <button type="submit" class="submit-btn">登录</button>
+    </form>
+    <p class="switch-link" @click="$router.push('/register')">
+      没有账号？立即注册
+    </p>
+    <!-- 修复：通过变量判断Token是否存在，而非直接用localStorage -->
+    <button class="logout-btn" @click="handleLogout" v-if="hasToken">
+      退出登录
+    </button>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { login } from '@/api/auth'
+import { loginApi } from '@/api/auth'
 
 const router = useRouter()
-const loginFormRef = ref(null)
-const loading = ref(false)
-
-const loginForm = ref({
+const form = ref({
   userName: '',
   password: ''
 })
 
-const loginRules = {
-  userName: [
-    { required: true, message: '请输入用户名', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6个字符', trigger: 'blur' }
-  ]
-}
+// 修复：用computed变量封装localStorage读取逻辑
+const hasToken = computed(() => {
+  return localStorage.getItem('token') !== null
+})
 
+// 登录逻辑
 const handleLogin = async () => {
-  if (!loginFormRef.value) return
-  
-  await loginFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        const res = await login(loginForm.value)
-        
-        // 保存token和用户信息
-        localStorage.setItem('token', res.token)
-        localStorage.setItem('userInfo', JSON.stringify({
-          userId: res.userId,
-          userName: res.userName
-        }))
-        
-        ElMessage.success('登录成功')
-        router.push('/')
-      } catch (error) {
-        console.error('登录失败：', error)
-      } finally {
-        loading.value = false
-      }
-    }
-  })
+  try {
+    const res = await loginApi(form.value)
+    const { token, userId, userName } = res.data.data
+    
+    localStorage.setItem('token', token)
+    localStorage.setItem('userId', userId)
+    localStorage.setItem('userName', userName)
+
+    alert('登录成功！')
+    router.push('/home')
+  } catch (err) {
+    const errMsg = err.response?.data?.message || '用户名/密码错误'
+    alert(errMsg)
+  }
 }
 
-const goToRegister = () => {
-  router.push('/register')
+// 退出登录
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('userId')
+  localStorage.removeItem('userName')
+  alert('已退出登录')
+  router.push('/login')
 }
 </script>
 
 <style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.login-box {
+  width: 400px;
+  margin: 100px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
-
-.login-card {
-  width: 450px;
-}
-
-.card-header {
+h2 {
   text-align: center;
+  margin-bottom: 20px;
+  color: #333;
 }
-
-.card-header h2 {
-  margin: 0;
-  color: #409EFF;
+.form-item {
+  margin-bottom: 15px;
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #666;
+}
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #42b983;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.submit-btn:hover {
+  background: #359e6d;
+}
+.switch-link {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #42b983;
+  cursor: pointer;
+}
+.switch-link:hover {
+  text-decoration: underline;
+}
+.logout-btn {
+  width: 100%;
+  padding: 10px;
+  background: #ff4d4f;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.logout-btn:hover {
+  background: #ff7875;
 }
 </style>
-

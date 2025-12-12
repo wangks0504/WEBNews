@@ -11,12 +11,13 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 5175, // 前端端口（固定）
     proxy: {
+      // 代理后端请求（替换为你的后端端口，比如55118）
       '/api': {
-        target: 'https://localhost:5001',
-        changeOrigin: true,
-        secure: false
+        target: 'http://localhost:5000', 
+        changeOrigin: true, // 跨域关键
+        rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
   }

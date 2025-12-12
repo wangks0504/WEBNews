@@ -1,177 +1,131 @@
 <template>
-  <!-- 欧阳负责：F6 用户注册页面 -->
-  <div class="register-container">
-    <el-card class="register-card">
-      <template #header>
-        <div class="card-header">
-          <h2>用户注册</h2>
-        </div>
-      </template>
-      
-      <el-form
-        ref="registerFormRef"
-        :model="registerForm"
-        :rules="registerRules"
-        label-width="80px">
-        <el-form-item label="用户名" prop="userName">
-          <el-input
-            v-model="registerForm.userName"
-            placeholder="请输入用户名（3-50个字符）"
-            clearable />
-        </el-form-item>
-        
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="registerForm.password"
-            type="password"
-            placeholder="请输入密码（至少6个字符）"
-            show-password
-            clearable />
-        </el-form-item>
-        
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input
-            v-model="registerForm.confirmPassword"
-            type="password"
-            placeholder="请再次输入密码"
-            show-password
-            clearable />
-        </el-form-item>
-        
-        <el-form-item label="邮箱" prop="email">
-          <el-input
-            v-model="registerForm.email"
-            placeholder="请输入邮箱"
-            clearable />
-        </el-form-item>
-        
-        <el-form-item label="真实姓名" prop="realName">
-          <el-input
-            v-model="registerForm.realName"
-            placeholder="请输入真实姓名（可选）"
-            clearable />
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button
-            type="primary"
-            style="width: 100%"
-            :loading="loading"
-            @click="handleRegister">
-            注册
-          </el-button>
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button
-            type="text"
-            style="width: 100%"
-            @click="goToLogin">
-            已有账号？去登录
-          </el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+  <div class="register-box">
+    <h2>用户注册</h2>
+    <form @submit.prevent="handleRegister">
+      <div class="form-item">
+        <label>用户名：</label>
+        <input 
+          type="text" 
+          v-model="form.userName" 
+          placeholder="请输入用户名" 
+          required
+        >
+      </div>
+      <div class="form-item">
+        <label>真实姓名：</label>
+        <input 
+          type="text" 
+          v-model="form.realName" 
+          placeholder="请输入真实姓名" 
+          required
+        >
+      </div>
+      <div class="form-item">
+        <label>邮箱：</label>
+        <input 
+          type="email" 
+          v-model="form.email" 
+          placeholder="请输入邮箱" 
+          required
+        >
+      </div>
+      <div class="form-item">
+        <label>密码：</label>
+        <input 
+          type="password" 
+          v-model="form.password" 
+          placeholder="请输入密码" 
+          required
+        >
+      </div>
+      <button type="submit" class="submit-btn">注册</button>
+    </form>
+    <p class="switch-link" @click="$router.push('/login')">
+      已有账号？立即登录
+    </p>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { register } from '@/api/auth'
+import { registerApi } from '@/api/auth'
 
-const router = useRouter()
-const registerFormRef = ref(null)
-const loading = ref(false)
-
-const registerForm = ref({
-  userName: '',
-  password: '',
-  confirmPassword: '',
-  email: '',
-  realName: ''
+// 表单数据（完全匹配后端RegisterDto）
+const form = ref({
+  userName: '',   // 对应后端UserName
+  realName: '',   // 对应后端RealName
+  email: '',      // 对应后端Email
+  password: ''    // 对应后端Password
 })
 
-// 自定义验证规则
-const validatePassword = (rule, value, callback) => {
-  if (value === '') {
-    callback(new Error('请再次输入密码'))
-  } else if (value !== registerForm.value.password) {
-    callback(new Error('两次输入密码不一致'))
-  } else {
-    callback()
-  }
-}
-
-const registerRules = {
-  userName: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 50, message: '用户名长度为3-50个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码至少6个字符', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, validator: validatePassword, trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
-  ]
-}
-
+// 注册逻辑
 const handleRegister = async () => {
-  if (!registerFormRef.value) return
-  
-  await registerFormRef.value.validate(async (valid) => {
-    if (valid) {
-      loading.value = true
-      try {
-        await register({
-          userName: registerForm.value.userName,
-          password: registerForm.value.password,
-          email: registerForm.value.email,
-          realName: registerForm.value.realName
-        })
-        
-        ElMessage.success('注册成功，请登录')
-        router.push('/login')
-      } catch (error) {
-        console.error('注册失败：', error)
-      } finally {
-        loading.value = false
-      }
-    }
-  })
-}
-
-const goToLogin = () => {
-  router.push('/login')
+  try {
+    const res = await registerApi(form.value)
+    // 后端返回注册成功
+    alert(res.data.message || '注册成功！')
+    // 跳登录页
+    window.location.href = '/#/login'
+  } catch (err) {
+    // 捕获后端错误（409用户名已存在/400参数错误）
+    const errMsg = err.response?.data?.message || '注册失败，请重试'
+    alert(errMsg)
+  }
 }
 </script>
 
 <style scoped>
-.register-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.register-box {
+  width: 400px;
+  margin: 100px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
-
-.register-card {
-  width: 500px;
-}
-
-.card-header {
+h2 {
   text-align: center;
+  margin-bottom: 20px;
+  color: #333;
 }
-
-.card-header h2 {
-  margin: 0;
-  color: #409EFF;
+.form-item {
+  margin-bottom: 15px;
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #666;
+}
+input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #42b983;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.submit-btn:hover {
+  background: #359e6d;
+}
+.switch-link {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 14px;
+  color: #42b983;
+  cursor: pointer;
+}
+.switch-link:hover {
+  text-decoration: underline;
 }
 </style>
-
