@@ -1,6 +1,7 @@
 <template>
   <!-- 心怡负责：F2 发布新闻页面 -->
   <!-- 黄奕负责：F4 上传附件、F7 指定接收人功能 -->
+   <!--我是王世强 我是人机-->
   <div class="create-news">
     <el-card>
       <template #header>
